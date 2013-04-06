@@ -1244,6 +1244,8 @@ typedef struct AVFormatContext {
 #define AVFMT_FLAG_SHORTEST   0x100000 ///< Stop muxing when the shortest stream stops.
 #define AVFMT_FLAG_AUTO_BSF   0x200000 ///< Add bitstream filters as requested by the muxer
 
+#define AVFMT_FLAG_NOEXTERNAL     0x40000000 ///< Do not open external files referenced by the format
+
     /**
      * Maximum number of bytes read from input in order to determine stream
      * properties. Used when reading the global header and in
