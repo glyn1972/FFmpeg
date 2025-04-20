@@ -439,33 +439,33 @@ static void mkv_find_segments(AVFormatContext *s)
 {
   char *filename, *filespec;
   const char *path, *file;
-  int ret = 0;
-  intptr_t handle;
-  struct _wfinddata_t finddata;
-  wchar_t wfilespec[4096];
+  glob_t segment_glob;
+  int glob_result;
+  struct stat st;
+  const char *mkvFileName;
+  char *fullMkvFileName;
 
   filename = av_strdup(s->url);
   file = av_basename(filename);
   path = av_dirname(filename);
   filespec = av_asprintf("%s/*.mk?", path);
 
-  if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, filespec, -1, wfilespec, 4096)) {
-    handle = _wfindfirst(wfilespec, &finddata);
-    if (handle != -1) {
-      while (ret == 0) {
-        char mkvFileName[4096];
-        WideCharToMultiByte(CP_UTF8, 0, finddata.name, -1, mkvFileName, 4096, NULL, NULL);
-
-        // Skip the main file, it was processed elsewhere
-        if (av_strcasecmp(mkvFileName, file) != 0) {
-          mkv_find_segments_file(s, path, mkvFileName);
+  glob_result = glob(filespec, 0, NULL, &segment_glob);
+  if (glob_result == 0) {
+    for (unsigned glob_index = 0; glob_index < segment_glob.gl_pathc; ++glob_index) {
+      fullMkvFileName = segment_glob.gl_pathv[glob_index];
+      if (stat(fullMkvFileName, &st) == 0) {
+        if (!S_ISDIR(st.st_mode)) {
+          mkvFileName = av_basename(fullMkvFileName);
+          // Skip the main file, it was processed elsewhere
+          if (av_strcasecmp(mkvFileName, file) != 0) {
+            mkv_find_segments_file(s, path, mkvFileName);
+          }
         }
-        ret = _wfindnext(handle, &finddata);
       }
-      _findclose(handle);
     }
   }
-
+  globfree(&segment_glob);
   av_freep(&filename);
   av_freep(&filespec);
 }
