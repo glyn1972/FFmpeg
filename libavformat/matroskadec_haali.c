@@ -2260,10 +2260,11 @@ int av_mkv_get_edition(AVFormatContext *s)
   return ctx->active_edition;
 }
 
-FFInputFormat ff_matroska_haali_demuxer = {
-    .p.name         = "matroska",
-    .p.long_name    = NULL_IF_CONFIG_SMALL("Matroska/WebM"),
+const AVInputFormat ff_matroska_haali_demuxer = {
+    .name           = "matroska",
+    .long_name      = NULL_IF_CONFIG_SMALL("Matroska/WebM"),
     .priv_data_size = sizeof(MatroskaDemuxContext),
+    .flags_internal = FF_FMT_INIT_CLEANUP,
     .read_probe     = mkv_probe,
     .read_header    = mkv_read_header,
     .read_packet    = mkv_read_packet,
