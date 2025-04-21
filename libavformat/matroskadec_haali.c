@@ -48,8 +48,14 @@
 #include <zlib.h>
 #endif
 
+#ifdef _WIN32
 #include <io.h>
 #include <windows.h>
+#else
+#include <glob.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#endif
 
 #define IO_BUFFER_SIZE 32768
 
@@ -58,6 +64,10 @@
                         (uint8_t)uid[4], (uint8_t)uid[5], (uint8_t)uid[6], (uint8_t)uid[7], \
                         (uint8_t)uid[8], (uint8_t)uid[9], (uint8_t)uid[10], (uint8_t)uid[11], \
                         (uint8_t)uid[12], (uint8_t)uid[13], (uint8_t)uid[14], (uint8_t)uid[15]
+
+#ifndef min
+#define min(a,b)            (((a) < (b)) ? (a) : (b))
+#endif
 
 static const char *matroska_doctypes[] = { "matroska", "webm" };
 
@@ -420,7 +430,7 @@ static void mkv_find_segments_file(AVFormatContext *s, const char *path, const c
   int found;
   char *filename = av_asprintf("%s/%s", path, file);
 
-  if (avio_open(&pb, filename, AVIO_FLAG_READ|AVIO_FLAG_AVOID_FSTAT) < 0) {
+  if (avio_open(&pb, filename, AVIO_FLAG_READ) < 0) {
     av_log(s, AV_LOG_ERROR, "Error opening file %s\n", filename);
     goto done;
   }

@@ -48,6 +48,8 @@
 #undef alloca
 #endif
 #define alloca __builtin_alloca
+#else
+#include <alloca.h>
 #endif
 
 #ifndef EVCBUG
