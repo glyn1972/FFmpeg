@@ -123,8 +123,10 @@ typedef struct MatroskaDemuxContext {
   MatroskaFile    *matroska;
 
   int num_tracks;
+  int total_tracks;
   ulonglong track_mask;
   MatroskaTrack *tracks;
+  MatroskaTrack *all_tracks;
 
   char CSBuffer[4096];
   unsigned BufferSize;
@@ -1346,8 +1348,10 @@ static int mkv_read_header(AVFormatContext *s)
   }
 
   /* Tracks */
-  ctx->num_tracks = num_tracks = mkv_GetNumTracks(ctx->matroska);
+  ctx->num_tracks = ctx->total_tracks = num_tracks = mkv_GetNumTracks(ctx->matroska);
   ctx->tracks = (MatroskaTrack *)av_mallocz(sizeof(MatroskaTrack) * num_tracks);
+  ctx->all_tracks = ctx->tracks;
+
   for(i = 0; i < num_tracks; i++) {
     MatroskaTrack *track = &ctx->tracks[i];
     TrackInfo *info = mkv_GetTrackInfo(ctx->matroska, i);
@@ -1606,6 +1610,20 @@ static int mkv_read_header(AVFormatContext *s)
             if ((ret = ff_isom_parse_dvcc_dvvc(s, st, mapping->Data, mapping->Length)) < 0)
                 return ret;
         }
+    }
+  }
+
+  // sort out which tracks to use for playback
+  if (count > 0 && chapters[0].nTracks > 0) {
+    int chapter_tracks = chapters[0].nTracks;
+    ctx->num_tracks = chapter_tracks;
+    ctx->tracks = (MatroskaTrack *)av_mallocz(sizeof(MatroskaTrack) * chapter_tracks);
+    for (i = 0; i < chapter_tracks; i++) {
+      for (j = 0; j < ctx->total_tracks; j++) {
+        if (chapters[0].Tracks[i] == ctx->all_tracks[j].info->UID) {
+          ctx->tracks[i] = ctx->all_tracks[j];
+        }
+      }
     }
   }
 
@@ -2181,6 +2199,12 @@ static int mkv_read_close(AVFormatContext *s)
 
   for (i = 0; i < ctx->num_tracks; i++) {
     av_freep(&ctx->tracks[i].cs);
+  }
+  if (ctx->tracks == ctx->all_tracks) {
+    av_freep(&ctx->tracks);
+  } else {
+    av_freep(&ctx->tracks);
+    av_freep(&ctx->all_tracks);
   }
   av_freep(&ctx->tracks);
   av_freep(&ctx->editions);
